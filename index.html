@@ -898,8 +898,24 @@
     const preview = isPdf
       ? `<div style="padding:26px 8px;text-align:center;background:#eff6ff;border-radius:6px;font-weight:700;color:#1d4ed8;">PDF Ready</div>`
       : `<img src="${url}" alt="Preview" />`;
-    card.innerHTML = `${preview}<div class="meta"><strong>${filename}</strong><br>${metaHtml}</div><a class="btn btn-success" href="${url}" download="${filename}">Download</a>`;
+    card.innerHTML = `${preview}<div class="meta"><strong>${filename}</strong><br>${metaHtml}</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-success">Download</button><a class="btn btn-outline" href="${url}" target="_blank" rel="noopener">Open</a></div><div class="meta">Tip: if Download does not start, press and hold the picture, then choose Save.</div>`;
+    card.querySelector("button").onclick = () => saveBlob(blob, filename);
     document.getElementById(containerId).appendChild(card);
+  }
+  async function saveBlob(blob, name) {
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (mobile && navigator.canShare && navigator.share) {
+      try {
+        const file = new File([blob], name, { type: blob.type });
+        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; }
+      } catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    const url = URL.createObjectURL(blob);
+    if (!("download" in HTMLAnchorElement.prototype) || /iPhone|iPad|iPod/i.test(navigator.userAgent)) { window.open(url, "_blank"); return; }
+    const a = document.createElement("a");
+    a.href = url; a.download = name; a.rel = "noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
   function downloadCanvasSelect(canvasId, baseName, selectId) {
     const { mime, ext } = parseFmt(document.getElementById(selectId).value);
@@ -913,10 +929,7 @@
       ctx.drawImage(canvas, 0, 0);
     }
     out.toBlob(blob => {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `${baseName}.${ext}`;
-      a.click();
+      saveBlob(blob, `${baseName}.${ext}`);
     }, mime, 0.94);
   }
   function loadScript(src) {
@@ -1219,8 +1232,7 @@
       octx.drawImage(cropWork, cropRect.x, cropRect.y, cropRect.w, cropRect.h, 0, 0, out.width, out.height);
     }
     out.toBlob(b => {
-      const a = document.createElement("a"); a.href = URL.createObjectURL(b);
-      a.download = `cropped-${mode}.${ext}`; a.click();
+      saveBlob(b, `cropped-${mode}.${ext}`);
     }, mime, 0.94);
   }
 
