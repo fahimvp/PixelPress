@@ -308,6 +308,7 @@
   </div>
 
   <button type="button" class="menu-item" onclick="openTool('compress')">Compress Image</button>
+  <button type="button" class="menu-item" onclick="openTool('increase')">Increase Image Size</button>
   <button type="button" class="menu-item" onclick="openTool('resize')">Resize Image Pixel</button>
   <button type="button" class="menu-item" onclick="openTool('passport')">Passport Size Photo</button>
 
@@ -385,6 +386,7 @@
   <div class="tool-tabs-bar">
     <div class="tool-tabs" id="toolTabs">
       <button type="button" class="tab-btn active" data-tab="compress" onclick="openTool('compress')">Compress Image</button>
+      <button type="button" class="tab-btn" data-tab="increase" onclick="openTool('increase')">Increase Size</button>
       <button type="button" class="tab-btn" data-tab="resize" onclick="openTool('resize')">Resize Pixel</button>
       <button type="button" class="tab-btn" data-tab="passport" onclick="openTool('passport')">Passport Photo</button>
       <button type="button" class="tab-btn" data-tab="crop" onclick="openTool('crop')">Crop / Circle</button>
@@ -399,7 +401,7 @@
 
 <main>
   <div class="hero">
-    <h1 id="heroTitle">Compress Image to Exact KB or MB</h1>
+    <h1 id="heroTitle">Compress Your Image</h1>
     <p id="heroSub">Supports PNG, JPG, JPEG, and WebP locally in your browser.</p>
   </div>
 
@@ -409,7 +411,7 @@
       <input class="dz-input" type="file" id="in-compress" accept="image/png,image/jpeg,image/webp,image/*" multiple />
       <div class="dropzone-title">Select or Drag &amp; Drop Images Here</div>
       <div class="dropzone-sub">Supports PNG, JPG, JPEG, WebP</div>
-      <button type="button" class="dz-pick-btn">Choose Image(s)</button>
+      <button type="button" class="dz-pick-btn">Choose Image</button>
       <div class="dz-preview-bar" id="prev-compress"></div>
     </div>
     <div class="preset-pills">
@@ -439,13 +441,47 @@
     <div class="results-grid" id="cmp-results"></div>
   </section>
 
+  <!-- 1b. INCREASE IMAGE SIZE -->
+  <section class="panel" id="panel-increase">
+    <div class="dropzone" id="dz-increase">
+      <input class="dz-input" type="file" id="in-increase" accept="image/*" multiple />
+      <div class="dropzone-title">Select or Drag &amp; Drop Images Here</div>
+      <div class="dropzone-sub">Supports PNG, JPG, JPEG, WebP</div>
+      <button type="button" class="dz-pick-btn">Choose Image</button>
+      <div class="dz-preview-bar" id="prev-increase"></div>
+    </div>
+    <div class="preset-pills">
+      <span class="pill" onclick="setInc(100,'KB')">100 KB</span>
+      <span class="pill" onclick="setInc(200,'KB')">200 KB</span>
+      <span class="pill" onclick="setInc(500,'KB')">500 KB</span>
+      <span class="pill" onclick="setInc(1,'MB')">1 MB</span>
+      <span class="pill" onclick="setInc(2,'MB')">2 MB</span>
+    </div>
+    <div class="controls">
+      <div class="field"><label>Increase To (File Size)</label><input type="number" id="inc-size" value="200" min="1" /></div>
+      <div class="field"><label>Unit</label><select id="inc-unit"><option value="KB" selected>KB</option><option value="MB">MB</option></select></div>
+      <div class="field"><label>Output Format</label>
+        <select id="inc-format">
+          <option value="image/jpeg|jpg">JPG</option>
+          <option value="image/jpeg|jpeg">JPEG</option>
+          <option value="image/png|png">PNG</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-primary" onclick="runIncrease()">Increase Size</button>
+      <button type="button" class="btn btn-outline" onclick="clearResults('inc-results')">Clear Results</button>
+    </div>
+    <div class="results-grid" id="inc-results"></div>
+  </section>
+
   <!-- 2. RESIZE -->
   <section class="panel" id="panel-resize">
     <div class="dropzone" id="dz-resize">
       <input class="dz-input" type="file" id="in-resize" accept="image/png,image/jpeg,image/webp,image/*" multiple />
       <div class="dropzone-title">Select or Drag &amp; Drop Images to Resize</div>
       <div class="dropzone-sub">PNG, JPG, JPEG, WebP • Resize in PX, CM, MM or Inches</div>
-      <button type="button" class="dz-pick-btn">Choose Image(s)</button>
+      <button type="button" class="dz-pick-btn">Choose Image</button>
       <div class="dz-preview-bar" id="prev-resize"></div>
     </div>
     <div class="controls">
@@ -572,7 +608,7 @@
       <input class="dz-input" type="file" id="in-convert" accept="image/png,image/jpeg,image/webp,image/*" multiple />
       <div class="dropzone-title">Select or Drag &amp; Drop Images to Convert</div>
       <div class="dropzone-sub">Convert between PNG, JPG, JPEG, WebP or Image to PDF</div>
-      <button type="button" class="dz-pick-btn">Choose Image(s)</button>
+      <button type="button" class="dz-pick-btn">Choose Image</button>
       <div class="dz-preview-bar" id="prev-convert"></div>
     </div>
     <div class="controls">
@@ -791,7 +827,8 @@
   })();
 
   const titles = {
-    compress: ["Compress Image to Exact KB or MB", "Supports PNG, JPG, JPEG, and WebP locally."],
+    compress: ["Compress Your Image", "Pick the exact size you need in KB or MB. Supports PNG, JPG, JPEG, and WebP locally."],
+    increase: ["Increase Image Size", "Raise a picture’s file size to an exact KB or MB, for example 20 KB up to 200 KB."],
     resize: ["Resize Image in PX, CM, MM or Inches", "Exact pixel and DPI resizing."],
     passport: ["Passport Size Photo Maker", "3.5×4.5 cm, 2×2 inch, PAN, Name/Date & 4×6 printable sheet."],
     crop: ["Crop, Circle Crop, Freehand, Rotate & Flip", "Drag across the canvas to crop or transform."],
@@ -881,8 +918,16 @@
     if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
     return (b / 1048576).toFixed(2) + " MB";
   }
+  function tryLoadData(file) {
+    return new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onerror = () => rej(new Error("read"));
+      fr.onload = () => { const img = new Image(); img.onload = () => res(img); img.onerror = () => rej(new Error("decode")); img.src = fr.result; };
+      fr.readAsDataURL(file);
+    });
+  }
   async function loadImageFromFile(file) {
-    try { return await tryLoadFile(file); }
+    try { try { return await tryLoadFile(file); } catch (e0) { return await tryLoadData(file); } }
     catch (e) {
       if (/\.(heic|heif)$/i.test(file.name) || /hei[cf]/i.test(file.type)) {
         try {
@@ -892,7 +937,7 @@
           return await tryLoadFile(out);
         } catch (e2) {}
       }
-      alert("This picture could not be opened. Please choose a JPG, PNG or WebP image.");
+      alert(file.size === 0 ? "This file is empty. If it is in iCloud, open it once in the Files app so it downloads, then try again." : "This picture could not be opened (" + file.name + ", " + (file.type || "unknown type") + "). Please choose a JPG, PNG or WebP image, or save it as JPG first.");
       throw e;
     }
   }
@@ -961,7 +1006,7 @@
   }
 
   // 1. COMPRESS
-  setupDropzone("compress", true);
+  setupDropzone("compress", true, () => runCompress());
   function setCmp(v, u) { document.getElementById("cmp-size").value = v; document.getElementById("cmp-unit").value = u; }
 
   async function compressToTarget(img, targetBytes, mime, fixedW = null, fixedH = null) {
@@ -993,7 +1038,7 @@
 
   async function runCompress() {
     const files = fileStore.compress;
-    if (!files.length) return alert("Please select an image first.");
+    if (!files.length) { document.getElementById("in-compress").click(); return; }
     const val = parseFloat(document.getElementById("cmp-size").value) || 50;
     const unit = document.getElementById("cmp-unit").value;
     const { mime, ext } = parseFmt(document.getElementById("cmp-format").value);
@@ -1005,6 +1050,40 @@
       const saved = Math.max(0, Math.round((1 - blob.size / f.size) * 100));
       addResultCard("cmp-results", blob, `${f.name.replace(/\.[^.]+$/, "")}-${val}${unit}.${ext}`,
         `${formatBytes(f.size)} → <strong>${formatBytes(blob.size)}</strong> (${saved}% saved)<br>${width}×${height}px`);
+    }
+  }
+
+  // 1b. INCREASE IMAGE SIZE
+  setupDropzone("increase", true, () => runIncrease());
+  function setInc(v, u) { document.getElementById("inc-size").value = v; document.getElementById("inc-unit").value = u; }
+  async function runIncrease() {
+    const files = fileStore.increase;
+    if (!files.length) { document.getElementById("in-increase").click(); return; }
+    const val = parseFloat(document.getElementById("inc-size").value) || 200;
+    const unit = document.getElementById("inc-unit").value;
+    const { mime, ext } = parseFmt(document.getElementById("inc-format").value);
+    const target = Math.round(val * (unit === "MB" ? 1048576 : 1024));
+    clearResults("inc-results");
+    for (const f of files) {
+      let base = f;
+      const ft = f.type === "image/jpg" ? "image/jpeg" : f.type;
+      if (ft !== mime) {
+        const img = await loadImageFromFile(f);
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const ctx = c.getContext("2d");
+        if (mime === "image/jpeg") { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); }
+        ctx.drawImage(img, 0, 0);
+        base = await canvasToBlob(c, mime, 0.95);
+      }
+      if (base.size > target) {
+        document.getElementById("inc-results").insertAdjacentHTML("beforeend",
+          `<div class="result-card"><div class="meta"><strong>${f.name}</strong><br>This picture is already ${formatBytes(base.size)}, which is bigger than ${val} ${unit}. Choose a larger target size.</div></div>`);
+        continue;
+      }
+      const out = new Blob([base, new Uint8Array(target - base.size)], { type: mime });
+      addResultCard("inc-results", out, `${f.name.replace(/\.[^.]+$/, "")}-${val}${unit}.${ext}`,
+        `${formatBytes(f.size)} → <strong>${formatBytes(out.size)}</strong>`);
     }
   }
 
