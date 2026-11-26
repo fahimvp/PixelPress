@@ -208,7 +208,8 @@
       background: var(--primary); color: #fff; border: none; border-radius: 8px;
       padding: 9px 18px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
     }
-    .dz-input { display: none; }
+    .dropzone { position: relative; }
+    .dz-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; font-size: 0; }
     .dz-preview-bar { display: none; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #93c5fd; text-align: left; }
     .dz-preview-bar.has-files { display: block; }
     .dz-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
@@ -487,13 +488,15 @@
           <option value="413x177">Signature (3.5 × 1.5 cm)</option>
         </select>
       </div>
-      <div class="field"><label>Background</label><input type="color" id="pass-bg" value="#ffffff" onchange="renderPassport()" /></div>
+      <div class="field"><label>Background color</label><input type="color" id="pass-bg" value="#ffffff" oninput="renderPassport()" onchange="renderPassport()" /></div>
+      <div class="field"><label>Background match (higher replaces more)</label><input type="range" id="pass-tol" min="10" max="80" value="35" oninput="renderPassport()" /></div>
       <div class="field"><label>Name on Photo</label><input type="text" id="pass-name" placeholder="Optional" oninput="renderPassport()" /></div>
       <div class="field"><label>Date on Photo</label><input type="text" id="pass-date" placeholder="Optional" oninput="renderPassport()" /></div>
       <div class="field"><label>Format</label>
         <select id="pass-fmt"><option value="image/jpeg|jpg">JPG</option><option value="image/jpeg|jpeg">JPEG</option><option value="image/png|png">PNG</option><option value="image/webp|webp">WebP</option></select>
       </div>
     </div>
+    <label class="checkbox-row"><input type="checkbox" id="pass-replace" checked onchange="renderPassport()" /> Replace the photo’s plain background with this color</label>
     <label class="checkbox-row"><input type="checkbox" id="pass-sheet" onchange="renderPassport()" /> Printable 4×6 Sheet (Multiple Copies)</label>
     <div class="btn-row"><button type="button" class="btn btn-primary" onclick="downloadCanvasSelect('passportCanvas','passport-photo','pass-fmt')">Download Passport Photo</button></div>
     <div class="canvas-stage"><canvas id="passportCanvas" width="413" height="531"></canvas></div>
@@ -845,15 +848,16 @@
     fileStore[key] = [];
 
     function handleFiles(fileList) {
-      const arr = Array.from(fileList || []);
-      if (!arr.length) return;
+      let arr = Array.from(fileList || []);
+      if (isImage) arr = arr.filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i.test(f.name));
+      if (!arr.length) { if (fileList && fileList.length) alert("Please choose an image file (JPG, PNG or WebP)."); return; }
       fileStore[key] = arr;
       prev.innerHTML = `<div style="font-size:0.8rem;font-weight:700;color:#1e3a8a;">Selected (${arr.length}):</div><div class="dz-chips"></div>`;
       const chips = prev.querySelector(".dz-chips");
       arr.forEach(f => {
         const chip = document.createElement("div");
         chip.className = "dz-chip";
-        if (isImage && f.type.startsWith("image/")) {
+        if (isImage && !/hei[cf]/i.test(f.name + f.type)) {
           chip.innerHTML = `<img src="${URL.createObjectURL(f)}" alt=""><span>${f.name} (${formatBytes(f.size)})</span>`;
         } else {
           chip.innerHTML = `<span>📄 ${f.name} (${formatBytes(f.size)})</span>`;
@@ -864,8 +868,8 @@
       if (onSelect) onSelect(arr);
     }
 
-    dz.addEventListener("click", e => { if (e.target !== inp) { inp.value = ""; inp.click(); } });
-    if (btn) btn.addEventListener("click", e => { e.stopPropagation(); inp.value = ""; inp.click(); });
+    inp.setAttribute("accept", isImage ? "image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif,.gif,.bmp" : "application/pdf,.pdf");
+    inp.addEventListener("click", () => { inp.value = ""; });
     inp.addEventListener("change", () => handleFiles(inp.files));
     dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("dragover"); });
     dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
@@ -877,12 +881,27 @@
     if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
     return (b / 1048576).toFixed(2) + " MB";
   }
-  function loadImageFromFile(file) {
+  async function loadImageFromFile(file) {
+    try { return await tryLoadFile(file); }
+    catch (e) {
+      if (/\.(heic|heif)$/i.test(file.name) || /hei[cf]/i.test(file.type)) {
+        try {
+          await loadScript("https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js");
+          let out = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
+          if (Array.isArray(out)) out = out[0];
+          return await tryLoadFile(out);
+        } catch (e2) {}
+      }
+      alert("This picture could not be opened. Please choose a JPG, PNG or WebP image.");
+      throw e;
+    }
+  }
+  function tryLoadFile(file) {
     return new Promise((res, rej) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => { URL.revokeObjectURL(url); res(img); };
-      img.onerror = rej;
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("decode")); };
       img.src = url;
     });
   }
@@ -1038,6 +1057,48 @@
   // 3. PASSPORT
   let passportImg = null;
   setupDropzone("passport", true, async files => { passportImg = await loadImageFromFile(files[0]); renderPassport(); });
+  function replaceBackground(ctx, w, h, bgHex, tol) {
+    const img = ctx.getImageData(0, 0, w, h), d = img.data;
+    const R = [], G = [], B = [];
+    const take = (x, y) => { const i = (y * w + x) * 4; R.push(d[i]); G.push(d[i + 1]); B.push(d[i + 2]); };
+    const top = Math.max(2, Math.round(h * 0.06));
+    for (let y = 0; y < top; y++) for (let x = 0; x < w; x += 2) take(x, y);
+    for (let y = 0; y < Math.round(h * 0.5); y += 2) for (let x = 0; x < 3; x++) { take(x, y); take(w - 1 - x, y); }
+    const med = a => { a.sort((p, q) => p - q); return a[a.length >> 1]; };
+    const br = med(R), bg = med(G), bb = med(B), thr2 = Math.pow(tol * 1.7, 2);
+    const near = i => { const dr = d[i] - br, dg = d[i + 1] - bg, db = d[i + 2] - bb; return dr * dr + dg * dg + db * db <= thr2; };
+    const mask = new Uint8Array(w * h), stack = [];
+    const seed = (x, y) => { const k = y * w + x; if (!mask[k] && near(k * 4)) { mask[k] = 1; stack.push(k); } };
+    for (let x = 0; x < w; x++) seed(x, 0);
+    for (let y = 0; y < h; y++) { seed(0, y); seed(w - 1, y); }
+    while (stack.length) {
+      const k = stack.pop(), x = k % w, y = (k / w) | 0;
+      if (x > 0) seed(x - 1, y);
+      if (x < w - 1) seed(x + 1, y);
+      if (y > 0) seed(x, y - 1);
+      if (y < h - 1) seed(x, y + 1);
+    }
+    let m = Float32Array.from(mask);
+    for (let pass = 0; pass < 2; pass++) {
+      const n = new Float32Array(w * h);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        let s = 0, c = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx, yy = y + dy;
+          if (xx >= 0 && xx < w && yy >= 0 && yy < h) { s += m[yy * w + xx]; c++; }
+        }
+        n[y * w + x] = s / c;
+      }
+      m = n;
+    }
+    const hex = bgHex.replace("#", ""), tr = parseInt(hex.slice(0, 2), 16), tg = parseInt(hex.slice(2, 4), 16), tb = parseInt(hex.slice(4, 6), 16);
+    for (let k = 0; k < w * h; k++) {
+      const a = m[k]; if (a <= 0) continue;
+      const i = k * 4;
+      d[i] = d[i] * (1 - a) + tr * a; d[i + 1] = d[i + 1] * (1 - a) + tg * a; d[i + 2] = d[i + 2] * (1 - a) + tb * a;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
   function renderPassport() {
     if (!passportImg) return;
     const [pw, ph] = document.getElementById("pass-preset").value.split("x").map(Number);
@@ -1058,6 +1119,7 @@
     if (imgR > boxR) { sw = sh * boxR; sx = (passportImg.naturalWidth - sw) / 2; }
     else { sh = sw / boxR; sy = (passportImg.naturalHeight - sh) / 2; }
     sctx.drawImage(passportImg, sx, sy, sw, sh, 0, 0, pw, drawH);
+    if (document.getElementById("pass-replace").checked) replaceBackground(sctx, pw, drawH, bg, +document.getElementById("pass-tol").value);
 
     if (hasStrip) {
       sctx.fillStyle = "#fff"; sctx.fillRect(0, drawH, pw, stripH);
