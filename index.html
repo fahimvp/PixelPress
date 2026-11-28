@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MyPixelPress — Image &amp; PDF Tools</title>
+  <title>pressIMG — Image &amp; PDF Tools</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M9 0H23A9 9 0 0 1 32 9V23A9 9 0 0 1 23 32H1A1 1 0 0 1 0 31V9A9 9 0 0 1 9 0Z' fill='%232f46eb'/%3E%3Ccircle cx='16' cy='16' r='7.4' fill='%23f7d866'/%3E%3C/svg%3E">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
@@ -280,7 +280,7 @@
 <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
 <aside class="drawer" id="navDrawer">
   <div class="drawer-header">
-    <span class="logo"><svg class="logo-mark" viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><path d="M9 0H23A9 9 0 0 1 32 9V23A9 9 0 0 1 23 32H1A1 1 0 0 1 0 31V9A9 9 0 0 1 9 0Z" fill="#2F46EB"/><circle cx="16" cy="16" r="7.4" fill="#F7D866"/></svg><span>MyPixelPress</span></span>
+    <span class="logo"><svg class="logo-mark" viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><path d="M9 0H23A9 9 0 0 1 32 9V23A9 9 0 0 1 23 32H1A1 1 0 0 1 0 31V9A9 9 0 0 1 9 0Z" fill="#2F46EB"/><circle cx="16" cy="16" r="7.4" fill="#F7D866"/></svg><span>pressIMG</span></span>
     <button type="button" class="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
 
@@ -378,7 +378,7 @@
         <span></span><span></span><span></span>
       </button>
       <a href="#" class="logo" onclick="openTool('compress'); return false;">
-        <svg class="logo-mark" viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><path d="M9 0H23A9 9 0 0 1 32 9V23A9 9 0 0 1 23 32H1A1 1 0 0 1 0 31V9A9 9 0 0 1 9 0Z" fill="#2F46EB"/><circle cx="16" cy="16" r="7.4" fill="#F7D866"/></svg><span>MyPixelPress</span>
+        <svg class="logo-mark" viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><path d="M9 0H23A9 9 0 0 1 32 9V23A9 9 0 0 1 23 32H1A1 1 0 0 1 0 31V9A9 9 0 0 1 9 0Z" fill="#2F46EB"/><circle cx="16" cy="16" r="7.4" fill="#F7D866"/></svg><span>pressIMG</span>
       </a>
     </div>
     <span class="privacy-pill">PNG • JPG • JPEG • WebP • PDF</span>
@@ -710,7 +710,7 @@
     <div id="crt-text-box">
       <div class="field" style="margin-bottom:12px;">
         <label id="crt-input-label">Enter Text / LaTeX Formula</label>
-        <textarea id="crt-input" rows="4" oninput="renderCreate()">Hello from MyPixelPress!&#10;Write notes or formulas here.</textarea>
+        <textarea id="crt-input" rows="4" oninput="renderCreate()">Hello from pressIMG!&#10;Write notes or formulas here.</textarea>
       </div>
       <div class="btn-row"><button type="button" class="btn btn-primary" onclick="downloadCanvasSelect('createCanvas','created-image','crt-fmt')">Download Image</button></div>
       <div class="canvas-stage"><canvas id="createCanvas" width="800" height="420"></canvas></div>
@@ -757,11 +757,11 @@
   </section>
 </main>
 
-<footer>© 2026 MyPixelPress — PNG, JPG, JPEG, WebP &amp; PDF Tools (100% Browser-Based)</footer>
+<footer>© 2026 pressIMG — PNG, JPG, JPEG, WebP &amp; PDF Tools (100% Browser-Based)</footer>
 
 <script>
   // Replace with your Google OAuth 2.0 Web Client ID from Google Cloud Console
-  const GOOGLE_CLIENT_ID = "156683805359-78jl6u20363c2pg8ri5s36ju95mgl6fu.apps.googleusercontent.com";
+  const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
   let googleTokenClient = null;
 
   function renderGoogleUser(user) {
@@ -781,25 +781,13 @@
     }
   }
 
-  function waitForGoogle(timeoutMs = 5000) {
-    return new Promise(resolve => {
-      const start = Date.now();
-      (function check() {
-        if (window.google && google.accounts && google.accounts.oauth2) return resolve(true);
-        if (Date.now() - start > timeoutMs) return resolve(false);
-        setTimeout(check, 100);
-      })();
-    });
-  }
-
-  async function handleGoogleSignIn() {
+  function handleGoogleSignIn() {
     if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith("YOUR_GOOGLE_CLIENT_ID")) {
-      alert("Google Client ID is not set. Replace GOOGLE_CLIENT_ID in the script.");
+      alert("To enable live Google Sign-In, replace GOOGLE_CLIENT_ID in the script with your Google OAuth 2.0 Client ID and serve this page over http://localhost or https://.");
       return;
     }
-    const ready = await waitForGoogle();
-    if (!ready) {
-      alert("Google Sign-In could not load. Check your internet connection and disable any ad blocker for this site, then try again.");
+    if (!window.google || !google.accounts || !google.accounts.oauth2) {
+      alert("Google Sign-In library is still loading or blocked. Please check your internet connection and try again.");
       return;
     }
     if (!googleTokenClient) {
@@ -807,29 +795,15 @@
         client_id: GOOGLE_CLIENT_ID,
         scope: "openid email profile",
         callback: async (resp) => {
-          if (resp.error || !resp.access_token) {
-            alert("Google sign-in failed: " + (resp.error_description || resp.error || "no access token received"));
-            return;
-          }
+          if (resp.error || !resp.access_token) return;
           try {
             const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
               headers: { Authorization: `Bearer ${resp.access_token}` }
             });
-            if (!res.ok) throw new Error("HTTP " + res.status);
             const profile = await res.json();
             renderGoogleUser(profile);
-            closeDrawer();
           } catch (err) {
             alert("Signed in, but failed to load profile details.");
-          }
-        },
-        error_callback: (err) => {
-          if (err && err.type === "popup_failed_to_open") {
-            alert("The sign-in popup was blocked. Please allow popups for this site and try again.");
-          } else if (err && err.type === "popup_closed") {
-            // user closed the popup: nothing to do
-          } else {
-            alert("Google sign-in error: " + ((err && (err.message || err.type)) || "unknown"));
           }
         }
       });
@@ -1034,83 +1008,31 @@
   setupDropzone("compress", true, () => runCompress());
   function setCmp(v, u) { document.getElementById("cmp-size").value = v; document.getElementById("cmp-unit").value = u; }
 
-  // High-quality resize: step-down halving + high smoothing (avoids the jagged/blurry look of one big shrink)
-  function resizeToCanvas(img, w, h, mime) {
-    w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
-    let src = img, sw = img.naturalWidth || img.width, sh = img.naturalHeight || img.height;
-    while (sw / 2 >= w && sh / 2 >= h) {
-      const step = document.createElement("canvas");
-      step.width = Math.max(1, Math.round(sw / 2)); step.height = Math.max(1, Math.round(sh / 2));
-      const sctx = step.getContext("2d");
-      sctx.imageSmoothingEnabled = true; sctx.imageSmoothingQuality = "high";
-      sctx.drawImage(src, 0, 0, step.width, step.height);
-      src = step; sw = step.width; sh = step.height;
-    }
-    const c = document.createElement("canvas");
-    c.width = w; c.height = h;
-    const ctx = c.getContext("2d");
-    if (mime === "image/jpeg") { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h); }
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(src, 0, 0, w, h);
-    return c;
-  }
-
-  // Keeps quality high and resolution as large as possible while staying under targetBytes:
-  //  1) try full resolution, lowering quality only down to QUALITY_FLOOR
-  //  2) if still too big, find the LARGEST size that fits at QUALITY_FLOOR
-  //  3) spend any leftover budget on higher quality at that size
-  async function compressToTarget(img, targetBytes, mime) {
-    const W = img.naturalWidth, H = img.naturalHeight;
-    const QUALITY_FLOOR = 0.72, QUALITY_MAX = 0.98;
-    const enc = (c, q) => canvasToBlob(c, mime, q);
-
-    // PNG is lossless: the only lever is dimensions
-    if (mime === "image/png") {
-      const full = await canvasToBlob(resizeToCanvas(img, W, H, mime), mime);
-      if (full.size <= targetBytes) return { blob: full, width: W, height: H };
-      let lo = 0.03, hi = 1, best = null, bw = 0, bh = 0;
-      for (let i = 0; i < 9; i++) {
-        const s = (lo + hi) / 2, w = Math.max(1, Math.round(W * s)), h = Math.max(1, Math.round(H * s));
-        const b = await canvasToBlob(resizeToCanvas(img, w, h, mime), mime);
-        if (b.size <= targetBytes) { best = b; bw = w; bh = h; lo = s; } else hi = s;
+  async function compressToTarget(img, targetBytes, mime, fixedW = null, fixedH = null) {
+    let w = fixedW || img.naturalWidth, h = fixedH || img.naturalHeight, best = null;
+    for (let pass = 0; pass < 6; pass++) {
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h));
+      const ctx = c.getContext("2d");
+      if (mime === "image/jpeg") { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); }
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      if (mime === "image/png") {
+        best = await canvasToBlob(c, "image/png");
+        if (best.size <= targetBytes) break;
+      } else {
+        let lo = 0.05, hi = 0.96, cand = null;
+        for (let i = 0; i < 8; i++) {
+          const mid = (lo + hi) / 2;
+          const b = await canvasToBlob(c, mime, mid);
+          if (b.size <= targetBytes) { cand = b; lo = mid; } else hi = mid;
+        }
+        best = cand || await canvasToBlob(c, mime, 0.05);
+        if (cand || best.size <= targetBytes) break;
       }
-      if (!best) { bw = Math.max(1, Math.round(W * 0.03)); bh = Math.max(1, Math.round(H * 0.03)); best = await canvasToBlob(resizeToCanvas(img, bw, bh, mime), mime); }
-      return { blob: best, width: bw, height: bh };
+      const f = Math.max(0.45, Math.sqrt(targetBytes / best.size) * 0.88);
+      w *= f; h *= f;
     }
-
-    // highest quality in [loQ, hiQ] that fits, or null if even loQ is too big
-    async function bestQuality(c, loQ, hiQ) {
-      const floor = await enc(c, loQ);
-      if (floor.size > targetBytes) return null;
-      const top = await enc(c, hiQ);
-      if (top.size <= targetBytes) return top;
-      let lo = loQ, hi = hiQ, cand = floor;
-      for (let i = 0; i < 7; i++) {
-        const mid = (lo + hi) / 2, b = await enc(c, mid);
-        if (b.size <= targetBytes) { cand = b; lo = mid; } else hi = mid;
-      }
-      return cand;
-    }
-
-    // 1) full resolution
-    const fullBlob = await bestQuality(resizeToCanvas(img, W, H, mime), QUALITY_FLOOR, QUALITY_MAX);
-    if (fullBlob) return { blob: fullBlob, width: W, height: H };
-
-    // 2) largest dimensions that fit at the quality floor
-    let lo = 0.03, hi = 1, found = null, fw = 0, fh = 0;
-    for (let i = 0; i < 9; i++) {
-      const s = (lo + hi) / 2, w = Math.max(1, Math.round(W * s)), h = Math.max(1, Math.round(H * s));
-      const b = await enc(resizeToCanvas(img, w, h, mime), QUALITY_FLOOR);
-      if (b.size <= targetBytes) { found = b; fw = w; fh = h; lo = s; } else hi = s;
-    }
-    if (!found) { // absurdly small target: last resort
-      fw = Math.max(1, Math.round(W * 0.03)); fh = Math.max(1, Math.round(H * 0.03));
-      return { blob: await enc(resizeToCanvas(img, fw, fh, mime), 0.3), width: fw, height: fh };
-    }
-
-    // 3) use leftover budget for better quality at that size
-    const refined = await bestQuality(resizeToCanvas(img, fw, fh, mime), QUALITY_FLOOR, QUALITY_MAX);
-    return { blob: refined || found, width: fw, height: fh };
+    return { blob: best, width: Math.round(w), height: Math.round(h) };
   }
 
   async function runCompress() {
@@ -1123,13 +1045,6 @@
     clearResults("cmp-results");
     for (const f of files) {
       const img = await loadImageFromFile(f);
-      const ft = f.type === "image/jpg" ? "image/jpeg" : f.type;
-      // Already under the target in the chosen format: keep the original, untouched
-      if (f.size <= targetBytes && ft === mime) {
-        addResultCard("cmp-results", f, `${f.name.replace(/\.[^.]+$/, "")}-${val}${unit}.${ext}`,
-          `${formatBytes(f.size)} (already under target, original quality kept)<br>${img.naturalWidth}×${img.naturalHeight}px`);
-        continue;
-      }
       const { blob, width, height } = await compressToTarget(img, targetBytes, mime);
       const saved = Math.max(0, Math.round((1 - blob.size / f.size) * 100));
       addResultCard("cmp-results", blob, `${f.name.replace(/\.[^.]+$/, "")}-${val}${unit}.${ext}`,
@@ -1532,7 +1447,7 @@
         pages.push({ bytes, imgW: c.width, imgH: c.height });
       }
       const pdfBlob = buildPdfFromJpegs(pages);
-      addResultCard("cnv-results", pdfBlob, "mypixelpress-images.pdf", `${pages.length} Page(s) • <strong>${formatBytes(pdfBlob.size)}</strong>`, true);
+      addResultCard("cnv-results", pdfBlob, "pressimg-images.pdf", `${pages.length} Page(s) • <strong>${formatBytes(pdfBlob.size)}</strong>`, true);
       return;
     }
 
